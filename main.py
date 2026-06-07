@@ -30,26 +30,26 @@ def get_game_screenshot():
         print(f"Error capturing screenshot: {e}")
         return None
 
-def is_snowy_mountain():
-    screenshot = get_game_screenshot()
-    if screenshot is None:
-        return False
-    img_np = np.array(screenshot)
+# def is_snowy_mountain():
+#     screenshot = get_game_screenshot()
+#     if screenshot is None:
+#         return False
+#     img_np = np.array(screenshot)
 
-    gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
+#     gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
 
-    _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
+#     _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
 
-    white_pixel_count = cv2.countNonZero(thresh)
-    total_pixel_count = thresh.size
-    white_pixel_percentage = (white_pixel_count / total_pixel_count) * 100
+#     white_pixel_count = cv2.countNonZero(thresh)
+#     total_pixel_count = thresh.size
+#     white_pixel_percentage = (white_pixel_count / total_pixel_count) * 100
 
-    print(f"White Pixel Percentage: {white_pixel_percentage:.2f}%")
+#     print(f"White Pixel Percentage: {white_pixel_percentage:.2f}%")
 
-    if white_pixel_percentage > 30.0:
-        return True
-    else:
-        return False
+#     if white_pixel_percentage > 30.0:
+#         return True
+#     else:
+#         return False
 
 def search_for_gems():
     pass
