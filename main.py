@@ -3,10 +3,14 @@ import cv2
 import numpy as np
 import time
 import pygetwindow as gw
+import pytesseract
 
 pyautogui.FAILSAFE = True
 
+pytesseract.pytesseract.tesseract_cmd = r'C:\programy\Tesseract\tesseract.exe'
+
 GAME_TITLE = 'Rise of Kingdoms'
+
 
 def get_game_screenshot():
     try:
@@ -29,6 +33,37 @@ def get_game_screenshot():
     except Exception as e:
         print(f"Error capturing screenshot: {e}")
         return None
+
+def check_kingdom_code(screenshot, target_code=""):
+    if screenshot is None:
+        print("No screenshot available for OCR.")
+        return False
+    
+    try:
+        img_np = np.array(screenshot)
+        
+        roi_x, roi_y, roi_w, roi_h = 10, 10, 150, 40
+
+        cropped_img = img_np[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
+
+        gray = cv2.cvtColor(cropped_img, cv2.COLOR_RGB2GRAY)
+
+        _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV)
+
+        text = pytesseract.image_to_string(thresh, config='--psm 7').strip()
+
+        print(f"OCR Result: '{text}'")
+
+        if text == target_code:
+            print("Kingdom code matches target.")
+            return True
+        else:
+            print("Kingdom code does not match target.")
+            return False
+        
+    except Exception as e:
+        print(f"Error during OCR: {e}")
+        return False
 
 # def is_snowy_mountain():
 #     screenshot = get_game_screenshot()
@@ -61,7 +96,14 @@ def move_map():
     pass
 
 def start_bot():
-    pass
+    curr_frame = get_game_screenshot()
+
+    is_correct_kingdom = check_kingdom_code(curr_frame, target_code="12345")
+
+    if is_correct_kingdom:
+        print("We are in the correct territory. Safe to move!")
+    else:
+        print("Warning: Coordinates matching failed or out of bounds!")
 
 if __name__ == "__main__":
     start_bot()
