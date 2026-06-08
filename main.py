@@ -4,12 +4,15 @@ import numpy as np
 import time
 import pygetwindow as gw
 import pytesseract
+from random import random, randint
 
 pyautogui.FAILSAFE = True
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\programy\Tesseract\tesseract.exe'
 
 GAME_TITLE = 'Rise of Kingdoms'
+
+TARGET_KINGDOM_CODE = "11448"
 
 def get_scaled_roi(cur_width, cur_height, BASE_X, BASE_Y, BASE_W, BASE_H):
     BASE_WIDTH = 1366
@@ -24,6 +27,21 @@ def get_scaled_roi(cur_width, cur_height, BASE_X, BASE_Y, BASE_W, BASE_H):
     new_h = int(BASE_H * scale_y)
 
     return (new_x, new_y, new_w, new_h)
+
+def activate_game_window():
+    try:
+        windows = gw.getWindowsWithTitle(GAME_TITLE)
+        if not windows:
+            print(f"Game window '{GAME_TITLE}' not found.")
+            return False
+        
+        game_window = windows[0]
+        game_window.activate()
+        return True
+    
+    except Exception as e:
+        print(f"Error activating game window: {e}")
+        return False
 
 def get_game_screenshot():
     try:
@@ -83,24 +101,50 @@ def check_kingdom_code(screenshot, target_code="", window_width=1366, window_hei
 
 
 def search_for_gems():
+    # For this example, let's pretend it returns 'True' and the (x, y) if found, 
+    # or 'False' and None if not found.
     pass
 
 def send_gather_march(x, y):
-    pass
+    """The sequence of clicks required to send troops once a gem is found."""
+    print(f"Gems spotted at {x}, {y}! Initiating gather sequence...")
+    
+    # 1. Click the gem on the map
+    pyautogui.click(x, y)
+    time.sleep(1) # Wait for the game UI menu to pop up
+    
+    # 2. Click the 'Gather' button (You would use another image search to find this button!)
+    # ... code to find and click 'Gather' ...
+    time.sleep(1)
+    
+    # 3. Click the 'New Troop March' button
+    # ... code to find and click 'March' ...
+    time.sleep(2) # Give the troops time to leave the city
 
 def move_map():
-    pass
+    sleeptime = random()
+    keys = ["up", "down", "left", "right"]
+    key = randint(0, 3)
+    activate_game_window()
+    if check_kingdom_code(get_game_screenshot(), target_code=TARGET_KINGDOM_CODE):
+        pyautogui.keyDown(keys[key])
+        time.sleep(sleeptime)
+        pyautogui.keyUp(keys[key])
+    else:
+        pyautogui.press("space")
+        time.sleep(1)
+        pyautogui.moveTo(500, 350)
+        for i in range(11):
+            pyautogui.scroll(-600)
+            time.sleep(1)
+        
 
 def start_bot():
     time.sleep(5)
-    curr_frame = get_game_screenshot()
-
-    is_correct_kingdom = check_kingdom_code(curr_frame, target_code="11448")
-
-    if is_correct_kingdom:
-        print("We are in the correct territory. Safe to move!")
-    else:
-        print("Warning: Coordinates matching failed or out of bounds!")
+    print("Running...")
+    while True:
+        move_map()
+        time.sleep(randint(3,6))
 
 if __name__ == "__main__":
     start_bot()
