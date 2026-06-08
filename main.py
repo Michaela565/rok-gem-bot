@@ -84,6 +84,7 @@ def check_kingdom_code(screenshot, target_code="", window_width=1366, window_hei
         kernel = np.ones((2, 2), np.uint8) 
         closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
+
         text = pytesseract.image_to_string(closed, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
 
         print(f"OCR Result: '{text}'")
@@ -92,6 +93,8 @@ def check_kingdom_code(screenshot, target_code="", window_width=1366, window_hei
             print("Kingdom code matches target.")
             return True
         else:
+            cv2.imshow("OCR Region", closed)
+            cv2.waitKey(0)
             print("Kingdom code does not match target.")
             return False
         
@@ -192,12 +195,12 @@ def start_bot():
     time.sleep(5)
     print("Running...")
     while True:
-        move_map()
-        time.sleep(4)
         res = search_for_gems(get_game_screenshot(), confidence=0.8)
         if res is not None:
             x, y = res
             pyautogui.moveTo(x, y)
+        time.sleep(4)
+        move_map()
         time.sleep(randint(3,6))
 
 
