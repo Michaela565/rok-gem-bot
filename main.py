@@ -55,14 +55,18 @@ def check_kingdom_code(screenshot, target_code="", window_width=1366, window_hei
     try:
         img_np = np.array(screenshot)
 
-        roi_x, roi_y, roi_w, roi_h = get_scaled_roi(window_width, window_height, 23, 30, 125, 70)
+        roi_x, roi_y, roi_w, roi_h = get_scaled_roi(window_width, window_height, 40, 30, 110, 70)
         cropped_img = img_np[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
 
         gray = cv2.cvtColor(cropped_img, cv2.COLOR_RGB2GRAY)
-        gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
-        _, thresh = cv2.threshold(gray, 187, 255, cv2.THRESH_BINARY_INV)
+        gray = cv2.resize(gray, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
+        blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+        _, thresh = cv2.threshold(blurred, 185, 255, cv2.THRESH_BINARY)
 
-        text = pytesseract.image_to_string(thresh, config='--psm 7').strip()
+        kernel = np.ones((2, 2), np.uint8) 
+        closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+        text = pytesseract.image_to_string(closed, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
 
         print(f"OCR Result: '{text}'")
 
@@ -77,26 +81,6 @@ def check_kingdom_code(screenshot, target_code="", window_width=1366, window_hei
         print(f"Error during OCR: {e}")
         return False
 
-# def is_snowy_mountain():
-#     screenshot = get_game_screenshot()
-#     if screenshot is None:
-#         return False
-#     img_np = np.array(screenshot)
-
-#     gray = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
-
-#     _, thresh = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY)
-
-#     white_pixel_count = cv2.countNonZero(thresh)
-#     total_pixel_count = thresh.size
-#     white_pixel_percentage = (white_pixel_count / total_pixel_count) * 100
-
-#     print(f"White Pixel Percentage: {white_pixel_percentage:.2f}%")
-
-#     if white_pixel_percentage > 30.0:
-#         return True
-#     else:
-#         return False
 
 def search_for_gems():
     pass
@@ -111,7 +95,7 @@ def start_bot():
     time.sleep(5)
     curr_frame = get_game_screenshot()
 
-    is_correct_kingdom = check_kingdom_code(curr_frame, target_code="S11448")
+    is_correct_kingdom = check_kingdom_code(curr_frame, target_code="11448")
 
     if is_correct_kingdom:
         print("We are in the correct territory. Safe to move!")
