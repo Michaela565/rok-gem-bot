@@ -100,10 +100,59 @@ def check_kingdom_code(screenshot, target_code="", window_width=1366, window_hei
         return False
 
 
-def search_for_gems():
-    # For this example, let's pretend it returns 'True' and the (x, y) if found, 
-    # or 'False' and None if not found.
-    pass
+def search_for_gems(screenshot, confidence=0.8):
+
+    if screenshot is None:
+        print("No screenshot available for gem search.")
+        return None
+    
+    try:
+        game_img = np.array(screenshot)
+        game_image_cv = cv2.cvtColor(game_img, cv2.COLOR_RGB2BGR)
+
+        template = cv2.imread(r'C:\muskine_kody\rok-gem-bot\media\gem.png', cv2.IMREAD_COLOR_BGR)
+
+        if template is None:
+            print("Gem template image not found.")
+            return None
+        
+        best_score = -1
+        best_loc = None
+        best_size = None
+
+        for scale in np.linspace(0.5, 1.5, num=20)[::-1]:
+
+            width = int(template.shape[1] * scale)
+            height = int(template.shape[0] * scale)
+            resized_template = cv2.resize(template, (width, height))
+
+            if resized_template.shape[0] > game_image_cv.shape[0] or resized_template.shape[1] > game_image_cv.shape[1]:
+                continue
+
+            result = cv2.matchTemplate(game_image_cv, resized_template, cv2.TM_CCOEFF_NORMED)
+            _, max_val, _, max_loc = cv2.minMaxLoc(result)
+
+            if max_val > best_score:
+                best_score = max_val
+                best_loc = max_loc
+                best_size = (width, height)
+
+        print(f"Best match score: {best_score:.2f}")
+
+        if best_score >= confidence:
+            center_x = best_loc[0] + best_size[0] // 2
+            center_y = best_loc[1] + best_size[1] // 2
+            print(f"Gem found at: ({center_x}, {center_y}) with confidence {best_score:.2f}")
+            return (center_x, center_y)
+        
+        else:
+            print("No gem found with sufficient confidence.")
+            return None
+
+    except Exception as e:
+        print(f"Error during gem search: {e}")
+        return None
+
 
 def send_gather_march(x, y):
     """The sequence of clicks required to send troops once a gem is found."""
@@ -144,7 +193,13 @@ def start_bot():
     print("Running...")
     while True:
         move_map()
+        time.sleep(4)
+        res = search_for_gems(get_game_screenshot(), confidence=0.8)
+        if res is not None:
+            x, y = res
+            pyautogui.moveTo(x, y)
         time.sleep(randint(3,6))
+
 
 if __name__ == "__main__":
     start_bot()
