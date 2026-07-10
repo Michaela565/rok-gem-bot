@@ -18,8 +18,6 @@ GAME_TITLE = 'Rise of Kingdoms'
 
 TARGET_KINGDOM_CODE = "11448"
 
-# TODO: make it work with the window being anywhere on the screen, not just the left top corner
-
 def get_abs_cordinates(x, y):
     windows = gw.getWindowsWithTitle(GAME_TITLE)
     if not windows:
@@ -80,8 +78,15 @@ def get_game_screenshot():
         print(f"Error capturing screenshot: {e}")
         return None
 
+def search_for_gems_handler(screenshot, confidence=0.8):
+    pic_paths = [r'media\gem.png', r'media\gem2.png', r'media\gem3.png']
+    for path in pic_paths:
+        result = _search_for_gems(screenshot, path, confidence)
+        if result is not None:
+            return result
+    return None
 
-def search_for_gems(screenshot, confidence=0.8):
+def _search_for_gems(screenshot, pic_path, confidence=0.8):
 
     if screenshot is None:
         print("No screenshot available for gem search.")
@@ -92,8 +97,7 @@ def search_for_gems(screenshot, confidence=0.8):
         game_image_cv = cv2.cvtColor(game_img, cv2.COLOR_RGB2BGR)
 
 
-        # TODO: cycling through the images
-        template = cv2.imread(r'C:\muskine_kody\rok-gem-bot\media\gem2.png', cv2.IMREAD_COLOR_BGR)
+        template = cv2.imread(pic_path, cv2.IMREAD_COLOR_BGR)
 
         if template is None:
             print("Gem template image not found.")
@@ -137,7 +141,6 @@ def search_for_gems(screenshot, confidence=0.8):
         print(f"Error during gem search: {e}")
         return None
 
-
 def send_gather_march(x, y):
     """The sequence of clicks required to send troops once a gem is found."""
     print(f"Gems spotted at {x}, {y}! Initiating gather sequence...")
@@ -154,20 +157,37 @@ def send_gather_march(x, y):
     # ... code to find and click 'March' ...
     time.sleep(2) # Give the troops time to leave the city
 
-def move_map():
+def move(key, used):
     sleeptime = random()
-    keys = ["up", "down", "left", "right"]
-    key = randint(0, 3)
     activate_game_window()
-    # TODO: program the movement
-        
+    if used >= 5:
+        pyautogui.press("space")
+        time.sleep(1)
+        for i in range(10):
+            pyautogui.scroll(-600)
+            time.sleep(1)
+        return 0
+    else:
+        pyautogui.keyDown(key)
+        time.sleep(sleeptime)
+        pyautogui.keyUp(key)
+        return used + 1
+
+    
 
 def start_bot():
-    time.sleep(5)
     print("Running...")
+    time.sleep(5)
+    used = 0
+    keys = ["up", "right", "down", "left"]
+    key_index = 0
     while True:
         activate_game_window()
-        res = search_for_gems(get_game_screenshot(), confidence=0.8)
+        if used == 0:
+            key_index = key_index + 1 if key_index < len(keys) - 1 else 0
+        used = move(keys[key_index], used)
+        
+        res = search_for_gems_handler(get_game_screenshot(), confidence=0.8)
         if res is not None:
             x, y = res
             x, y = get_abs_cordinates(x, y)
