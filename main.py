@@ -173,29 +173,35 @@ def move(key, used):
         pyautogui.keyUp(key)
         return used + 1
 
-    
-
 def start_bot():
     print("Running...")
     time.sleep(5)
+
     used = 0
     keys = ["up", "right", "down", "left"]
     key_index = 0
+
     while True:
+
         activate_game_window()
-        if used == 0:
+
+        if used == 0: # go to the next key
             key_index = key_index + 1 if key_index < len(keys) - 1 else 0
+
         used = move(keys[key_index], used)
         
         res = search_for_gems_handler(get_game_screenshot(), confidence=0.8)
+
         if res is not None:
             x, y = res
             x, y = get_abs_cordinates(x, y)
+
             try:
                 pyautogui.moveTo(x, y)
-                print("moved")
+
             except Exception as e:
                 print(f"Error occurred while moving to gem location: {e}")
+
         time.sleep(2)
 
 
