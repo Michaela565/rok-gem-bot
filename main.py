@@ -4,15 +4,29 @@ import numpy as np
 import time
 import pygetwindow as gw
 import pytesseract
+import configparser
 from random import random, randint
 
 pyautogui.FAILSAFE = True
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\programy\Tesseract\tesseract.exe'
+config = configparser.ConfigParser()
+config.read('settings.ini')
+
+pytesseract.pytesseract.tesseract_cmd = config["paths"]["tesseract_path"]
 
 GAME_TITLE = 'Rise of Kingdoms'
 
 TARGET_KINGDOM_CODE = "11448"
+
+# TODO: make it work with the window being anywhere on the screen, not just the left top corner
+
+def get_abs_cordinates(x, y):
+    windows = gw.getWindowsWithTitle(GAME_TITLE)
+    if not windows:
+        print(f"Game window '{GAME_TITLE}' not found.")
+        return None
+    game_window = windows[0]
+    return (game_window.left + x, game_window.top + y)
 
 def get_scaled_roi(cur_width, cur_height, BASE_X, BASE_Y, BASE_W, BASE_H):
     BASE_WIDTH = 1366
@@ -44,6 +58,7 @@ def activate_game_window():
         return False
 
 def get_game_screenshot():
+    # Game window must be on the main monitor and not minimized for this to work
     try:
         windows = gw.getWindowsWithTitle(GAME_TITLE)
         if not windows:
@@ -65,55 +80,20 @@ def get_game_screenshot():
         print(f"Error capturing screenshot: {e}")
         return None
 
-def check_kingdom_code(screenshot, target_code="", window_width=1366, window_height=768):
-    if screenshot is None:
-        print("No screenshot available for OCR.")
-        return False
-    
-    try:
-        img_np = np.array(screenshot)
-
-        roi_x, roi_y, roi_w, roi_h = get_scaled_roi(window_width, window_height, 40, 30, 110, 70)
-        cropped_img = img_np[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
-
-        gray = cv2.cvtColor(cropped_img, cv2.COLOR_RGB2GRAY)
-        gray = cv2.resize(gray, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
-        blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-        _, thresh = cv2.threshold(blurred, 185, 255, cv2.THRESH_BINARY)
-
-        kernel = np.ones((2, 2), np.uint8) 
-        closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-
-
-        text = pytesseract.image_to_string(closed, config='--psm 7 -c tessedit_char_whitelist=0123456789').strip()
-
-        print(f"OCR Result: '{text}'")
-
-        if target_code in text:
-            print("Kingdom code matches target.")
-            return True
-        else:
-            cv2.imshow("OCR Region", closed)
-            cv2.waitKey(0)
-            print("Kingdom code does not match target.")
-            return False
-        
-    except Exception as e:
-        print(f"Error during OCR: {e}")
-        return False
-
 
 def search_for_gems(screenshot, confidence=0.8):
 
     if screenshot is None:
         print("No screenshot available for gem search.")
         return None
-    
+
     try:
         game_img = np.array(screenshot)
         game_image_cv = cv2.cvtColor(game_img, cv2.COLOR_RGB2BGR)
 
-        template = cv2.imread(r'C:\muskine_kody\rok-gem-bot\media\gem.png', cv2.IMREAD_COLOR_BGR)
+
+        # TODO: cycling through the images
+        template = cv2.imread(r'C:\muskine_kody\rok-gem-bot\media\gem2.png', cv2.IMREAD_COLOR_BGR)
 
         if template is None:
             print("Gem template image not found.")
@@ -122,6 +102,7 @@ def search_for_gems(screenshot, confidence=0.8):
         best_score = -1
         best_loc = None
         best_size = None
+
 
         for scale in np.linspace(0.5, 1.5, num=20)[::-1]:
 
@@ -178,30 +159,24 @@ def move_map():
     keys = ["up", "down", "left", "right"]
     key = randint(0, 3)
     activate_game_window()
-    if check_kingdom_code(get_game_screenshot(), target_code=TARGET_KINGDOM_CODE):
-        pyautogui.keyDown(keys[key])
-        time.sleep(sleeptime)
-        pyautogui.keyUp(keys[key])
-    else:
-        pyautogui.press("space")
-        time.sleep(1)
-        pyautogui.moveTo(500, 350)
-        for i in range(11):
-            pyautogui.scroll(-600)
-            time.sleep(1)
+    # TODO: program the movement
         
 
 def start_bot():
     time.sleep(5)
     print("Running...")
     while True:
+        activate_game_window()
         res = search_for_gems(get_game_screenshot(), confidence=0.8)
         if res is not None:
             x, y = res
-            pyautogui.moveTo(x, y)
-        time.sleep(4)
-        move_map()
-        time.sleep(randint(3,6))
+            x, y = get_abs_cordinates(x, y)
+            try:
+                pyautogui.moveTo(x, y)
+                print("moved")
+            except Exception as e:
+                print(f"Error occurred while moving to gem location: {e}")
+        time.sleep(2)
 
 
 if __name__ == "__main__":
